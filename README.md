@@ -1,1 +1,1 @@
-# HKUST_COMP5421_Coursework
+# HKUST-COMP5421_Computer-Vision
