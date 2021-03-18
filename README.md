@@ -1,1 +1,1 @@
-# HKUST-COMP5421_Computer-Vision
+# HKUST-COMP5421-Computer-Vision
