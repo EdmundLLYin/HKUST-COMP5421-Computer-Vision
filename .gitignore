@@ -7,6 +7,7 @@ log.log
 **/node_modules
 *.pyc
 *.vsix
+assignment3/hw1_code_data/data/vgg16_list.npy
 **/.vscode/.ropeproject/**
 **/testFiles/**/.cache/**
 *.noseids
