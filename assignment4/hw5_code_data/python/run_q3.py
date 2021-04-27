@@ -9,10 +9,10 @@ valid_data = scipy.io.loadmat('../data/nist36_valid.mat')
 train_x, train_y = train_data['train_data'], train_data['train_labels']
 valid_x, valid_y = valid_data['valid_data'], valid_data['valid_labels']
 
-max_iters = 100#30
+max_iters = 150
 # pick a batch size, learning rate
-batch_size = 64#32
-learning_rate = 0.002#0.01
+batch_size = 64
+learning_rate = 0.003#Also trained with 0.01, 0.001 and 0.0001
 hidden_size = 64
 
 batches = get_random_batches(train_x, train_y, batch_size)
@@ -32,6 +32,12 @@ for itr in range(max_iters):
     total_acc = 0
     for xb, yb in batches:
         # training loop can be exactly the same as q2!
+
+        # plt.figure()
+        # plt.imshow(np.reshape(xb,(64,32,32))[0,:,:])
+        # plt.colorbar()
+        # plt.show()
+        
         yb = yb.astype(int)
         # forward
         h1 = forward(xb, params, 'layer1')
@@ -44,8 +50,7 @@ for itr in range(max_iters):
         total_acc += acc
 
         # backward
-        delta1 = probs - yb
-        delta2 = backwards(delta1, params, 'output', linear_deriv)
+        delta2 = backwards(probs - yb, params, 'output', linear_deriv)
         backwards(delta2, params, 'layer1', sigmoid_deriv)
 
         # apply gradient
@@ -71,14 +76,14 @@ for itr in range(max_iters):
     valid_accuracy.append(acc)
 
 plt.figure('accuracy')
-plt.plot(range(max_iters), train_accuracy, color='g')
-plt.plot(range(max_iters), valid_accuracy, color='b')
+plt.plot(range(max_iters), train_accuracy, color='r')
+plt.plot(range(max_iters), valid_accuracy, color='g')
 plt.legend(['train', 'validation'])
 plt.show()
 
 plt.figure('loss')
-plt.plot(range(max_iters), train_loss, color='g')
-plt.plot(range(max_iters), valid_loss, color='b')
+plt.plot(range(max_iters), train_loss, color='r')
+plt.plot(range(max_iters), valid_loss, color='g')
 plt.legend(['train', 'validation'])
 plt.show()
 
@@ -97,11 +102,6 @@ probs = forward(h1, params, 'output', softmax)
 test_loss, test_acc = compute_loss_and_acc(test_y, probs)
 print('Test accuracy: ', test_acc)
 
-if False: # view the data
-    for crop in xb:
-        import matplotlib.pyplot as plt
-        plt.imshow(crop.reshape(32,32).T)
-        plt.show()
 import pickle
 saved_params = {k:v for k,v in params.items() if '_' not in k}
 with open('q3_weights.pickle', 'wb') as handle:
@@ -117,19 +117,27 @@ with open('q3_weights.pickle', 'rb') as handle:
 # Q3.1.3
 import matplotlib.pyplot as plt
 from mpl_toolkits.axes_grid1 import ImageGrid
-fig = plt.figure()
-grid = ImageGrid(fig, 111,  # similar to subplot(111)
-                 nrows_ncols=(8, 8),  # creates 2x2 grid of axes
-                 )
 
+empty_params = {}
+initialize_weights(train_x.shape[1], hidden_size, empty_params, 'layer1')
+initialize_weights(hidden_size, train_y.shape[1], empty_params, 'output')
+
+fig = plt.figure()
+grid = ImageGrid(fig, 111, nrows_ncols=(8, 8))
+for i in range(hidden_size):
+    grid[i].imshow(np.reshape(empty_params['Wlayer1'][:, i], (32, 32)))  # The AxesGrid object work as a list of axes.
+    plt.axis('off')
+plt.show()
+
+fig = plt.figure()
+grid = ImageGrid(fig, 111, nrows_ncols=(8, 8))
 for i in range(hidden_size):
     grid[i].imshow(np.reshape(params['Wlayer1'][:, i], (32, 32)))  # The AxesGrid object work as a list of axes.
     plt.axis('off')
-
 plt.show()
 
 
-# Q3.1.3
+# Q3.1.4
 train_data = scipy.io.loadmat('../data/nist36_train.mat')
 train_x, train_y = train_data['train_data'], train_data['train_labels']
 h1 = forward(train_x, params, 'layer1')

@@ -53,11 +53,13 @@ for pred,gt in zip(recon_valid,valid_x):
     total.append(psnr(gt,pred))
 print(np.array(total).mean())
 
-selected_inds = [4, 50, 500, 520, 1740, 1720, 2000, 2010, 3400, 3420]
+selected_inds = range(2800,3300,50)
 
 for i in selected_inds:
+    print(i)
     plt.subplot(2,1,1)
     plt.imshow(valid_x[i].reshape(32,32).T)
     plt.subplot(2,1,2)
     plt.imshow(recon_valid[i].reshape(32,32).T)
+    plt.savefig('../q6_' + str(i) + '.png')
     plt.show()

@@ -123,18 +123,14 @@ for itr in range(max_iters):
 
 # save the old params
 import copy
-
 eps = 1e-6
-
 xb, yb = batches[0]
 h1 = forward(xb, params, 'layer1')
 probs = forward(h1, params, 'output', softmax)
-delta1 = probs - yb
-delta2 = backwards(delta1, params, 'output', linear_deriv)
+delta2 = backwards(probs - yb, params, 'output', linear_deriv)
 backwards(delta2, params, 'layer1', sigmoid_deriv)
-
 params_orig = copy.deepcopy(params)
-
+eps = 1e-6
 for k,v in params.items():
     if '_' in k: 
         continue
@@ -163,7 +159,7 @@ for k,v in params.items():
                 loss2, acc2 = compute_loss_and_acc(yb, probs)
 
                 params['grad_'+k][i, j] = (loss1 - loss2) / (2 * eps)
-    else:
+    elif 'b' in k:
         for i in range(v.shape[0]):
             d = np.zeros(v.shape)
             d[i] = 1

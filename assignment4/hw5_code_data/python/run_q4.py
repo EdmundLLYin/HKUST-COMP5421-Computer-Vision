@@ -75,8 +75,15 @@ for img in os.listdir('../images'):
             # resize to 32*32
             crop = skimage.transform.resize(crop, (32, 32))
             crop = skimage.morphology.erosion(crop, kernel)
+            
+            crop = np.pad(crop, 4, 'constant', constant_values=(1, 1))
+            crop = skimage.transform.resize(crop, (32,32))
+            crop = crop * 3 - 2.0
+            crop[crop < 0.0] = 0.0
+
             # plt.figure()
             # plt.imshow(crop)
+            # plt.colorbar()
             # plt.show()
             crop = np.transpose(crop)
             row_data.append(crop.flatten())

@@ -13,7 +13,7 @@ valid_x = valid_data['valid_data']
 max_iters = 100
 # pick a batch size, learning rate
 batch_size = 36 
-learning_rate =  3e-5#3e-5
+learning_rate =  5e-5
 hidden_size = 32
 lr_rate = 20
 batches = get_random_batches(train_x,np.ones((train_x.shape[0],1)),batch_size)
@@ -85,36 +85,47 @@ saved_params = {k:v for k,v in params.items() if '_' not in k}
 with open('q5_weights.pickle', 'wb') as handle:
     pickle.dump(saved_params, handle, protocol=pickle.HIGHEST_PROTOCOL)
 
-# import pickle
-# params = pickle.load(open('q5_weights.pickle', 'rb'))
+import pickle
+params = pickle.load(open('q5_weights.pickle', 'rb'))
 
 # visualize some results
 # Q5.3.1
 import matplotlib.pyplot as plt
-h1 = forward(xb,params,'layer1',relu)
-h2 = forward(h1,params,'hidden',relu)
-h3 = forward(h2,params,'hidden2',relu)
-out = forward(h3,params,'output',sigmoid)
-for i in range(5):
-    plt.subplot(2,1,1)
-    plt.imshow(xb[i].reshape(32,32).T)
-    plt.subplot(2,1,2)
-    plt.imshow(out[i].reshape(32,32).T)
-    plt.show()
 
-from skimage.metrics import peak_signal_noise_ratio
+total_save = 10
+j = 0
+for xb, _ in batches:
+    h1 = forward(xb,params,'layer1',relu)
+    h2 = forward(h1,params,'hidden',relu)
+    h3 = forward(h2,params,'hidden2',relu)
+    out = forward(h3,params,'output',sigmoid)
+
+    for i in range(batch_size):
+        plt.subplot(2,1,1)
+        plt.imshow(xb[i].reshape(32,32).T)
+        plt.subplot(2,1,2)
+        plt.imshow(out[i].reshape(32,32).T)
+        plt.savefig('../q5_' + str(j) + '.png')
+        #plt.show()
+        j += 1
+        if j == total_save:
+            break
+        
+    if j == total_save:
+        break
+from skimage.metrics import peak_signal_noise_ratio as psnr
 #from skimage.measure import compare_psnr as psnr
 
-# # evaluate PSNR
-# # Q5.3.2
-# h1 = forward(valid_x, params, 'layer1', relu)
-# h2 = forward(h1, params, 'hidden', relu)
-# h3 = forward(h2, params, 'hidden2', relu)
-# out = forward(h3, params, 'output', sigmoid)
-# psnr_noisy = 0
-# for i in range(out.shape[0]):
-#     psnr_noisy += psnr(valid_x[i], out[i])
+# evaluate PSNR
+# Q5.3.2
+h1 = forward(valid_x, params, 'layer1', relu)
+h2 = forward(h1, params, 'hidden', relu)
+h3 = forward(h2, params, 'hidden2', relu)
+out = forward(h3, params, 'output', sigmoid)
+psnr_noisy = 0
+for i in range(out.shape[0]):
+    psnr_noisy += psnr(valid_x[i], out[i])
 
-# psnr_noisy /= out.shape[0]
-# print(psnr_noisy)
+psnr_noisy /= out.shape[0]
+print(psnr_noisy)
 
