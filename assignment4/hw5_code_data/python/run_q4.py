@@ -35,12 +35,10 @@ for img in os.listdir('../images'):
     # find the rows using..RANSAC, counting, clustering, etc.
     heights = [bbox[2]-bbox[0] for bbox in bboxes]
     mean_height = sum(heights)/len(heights)
-    # sort the bounding boxes with center y
     centers = [((bbox[2]+bbox[0])//2, (bbox[3]+bbox[1])//2, bbox[2]-bbox[0], bbox[3]-bbox[1]) for bbox in bboxes]
     centers = sorted(centers, key=lambda p: p[0])
     rows = []
     pre_h = centers[0][0]
-    # cluster rows
     row = []
     for c in centers:
         if c[0] > pre_h + mean_height:
@@ -61,9 +59,7 @@ for img in os.listdir('../images'):
     for row in rows:
         row_data = []
         for y, x, h, w in row:
-            # crop out the character
             crop = bw[y-h//2:y+h//2, x-w//2:x+w//2]
-            # pad it to square
             h_pad, w_pad = 0, 0
             if h > w:
                 h_pad = h//20
@@ -72,15 +68,10 @@ for img in os.listdir('../images'):
                 w_pad = w//20
                 h_pad = (w-h)//2+w_pad
             crop = np.pad(crop, ((h_pad, h_pad), (w_pad, w_pad)), 'constant', constant_values=(1, 1))
-            # resize to 32*32
-            crop = skimage.transform.resize(crop, (32, 32))
-            crop = skimage.morphology.erosion(crop, kernel)
-            
-            crop = np.pad(crop, 4, 'constant', constant_values=(1, 1))
-            crop = skimage.transform.resize(crop, (32,32))
+            crop = skimage.morphology.erosion(skimage.transform.resize(crop, (32, 32)), kernel)
+            crop = skimage.transform.resize( np.pad(crop, 4, 'constant', constant_values=(1, 1)), (32,32))
             crop = crop * 3 - 2.0
             crop[crop < 0.0] = 0.0
-
             # plt.figure()
             # plt.imshow(crop)
             # plt.colorbar()
@@ -96,16 +87,14 @@ for img in os.listdir('../images'):
     letters = np.array([_ for _ in string.ascii_uppercase[:26]] + [str(_) for _ in range(10)])
     params = pickle.load(open('q3_weights.pickle', 'rb'))
 
-    ind2c = {0: 'A', 1: 'B', 2: 'C', 3: 'D', 4: 'E', 5: 'F', 6: 'G', 7: 'H', 8: 'I', 9: 'J',
+    i2c = {0: 'A', 1: 'B', 2: 'C', 3: 'D', 4: 'E', 5: 'F', 6: 'G', 7: 'H', 8: 'I', 9: 'J',
              10: 'K', 11: 'L', 12: 'M', 13: 'N', 14: 'O', 15: 'P', 16: 'Q', 17: 'R', 18: 'S', 19: 'T',
              20: 'U', 21: 'V', 22: 'W', 23: 'X', 24: 'Y', 25: 'Z', 26: '0', 27: '1', 28: '2', 29: '3',
              30: '4', 31: '5', 32: '6', 33: '7', 34: '8', 35: '9'}
     for row_data in data:
-        h1 = forward(row_data, params, 'layer1')
-        probs = forward(h1, params, 'output', softmax)
+        probs = forward(forward(row_data, params, 'layer1'), params, 'output', softmax)
         row_s = ''
         for i in range(probs.shape[0]):
             ind = np.where(probs[i, :] == np.max(probs[i, :]))[0][0]
-            row_s += ind2c[ind]
-
+            row_s += i2c[ind]
         print(row_s)

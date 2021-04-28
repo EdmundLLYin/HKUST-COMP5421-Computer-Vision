@@ -2,6 +2,10 @@ import numpy as np
 import scipy.io
 from nn import *
 import matplotlib.pyplot as plt
+import pickle
+import string
+import matplotlib.pyplot as plt
+from mpl_toolkits.axes_grid1 import ImageGrid
 
 train_data = scipy.io.loadmat('../data/nist36_train.mat')
 valid_data = scipy.io.loadmat('../data/nist36_valid.mat')
@@ -12,7 +16,7 @@ valid_x, valid_y = valid_data['valid_data'], valid_data['valid_labels']
 max_iters = 150
 # pick a batch size, learning rate
 batch_size = 64
-learning_rate = 0.003#Also trained with 0.01, 0.001 and 0.0001
+learning_rate = 0.001#Also trained with 0.01, 0.001 and 0.0001
 hidden_size = 64
 
 batches = get_random_batches(train_x, train_y, batch_size)
@@ -69,8 +73,7 @@ for itr in range(max_iters):
 
     # run on validation set per iteration
     valid_y = valid_y.astype(int)
-    h1 = forward(valid_x, params, 'layer1')
-    probs = forward(h1, params, 'output', softmax)
+    probs = forward(forward(valid_x, params, 'layer1'), params, 'output', softmax)
     loss, acc = compute_loss_and_acc(valid_y, probs)
     valid_loss.append(loss)
     valid_accuracy.append(acc)
@@ -102,7 +105,6 @@ probs = forward(h1, params, 'output', softmax)
 test_loss, test_acc = compute_loss_and_acc(test_y, probs)
 print('Test accuracy: ', test_acc)
 
-import pickle
 saved_params = {k:v for k,v in params.items() if '_' not in k}
 with open('q3_weights.pickle', 'wb') as handle:
     pickle.dump(saved_params, handle, protocol=pickle.HIGHEST_PROTOCOL)
@@ -115,8 +117,6 @@ with open('q3_weights.pickle', 'rb') as handle:
     params['boutput'] = data['boutput']
 
 # Q3.1.3
-import matplotlib.pyplot as plt
-from mpl_toolkits.axes_grid1 import ImageGrid
 
 empty_params = {}
 initialize_weights(train_x.shape[1], hidden_size, empty_params, 'layer1')
@@ -136,24 +136,9 @@ for i in range(hidden_size):
     plt.axis('off')
 plt.show()
 
-
 # Q3.1.4
-train_data = scipy.io.loadmat('../data/nist36_train.mat')
-train_x, train_y = train_data['train_data'], train_data['train_labels']
-h1 = forward(train_x, params, 'layer1')
-train_probs = forward(h1, params, 'output', softmax)
 
-valid_data = scipy.io.loadmat('../data/nist36_valid.mat')
-valid_x, valid_y = valid_data['valid_data'], valid_data['valid_labels']
-h1 = forward(valid_x, params, 'layer1')
-valid_probs = forward(h1, params, 'output', softmax)
-
-test_data = scipy.io.loadmat('../data/nist36_test.mat')
-test_x, test_y = test_data['test_data'], test_data['test_labels']
-h1 = forward(test_x, params, 'layer1')
-test_probs = forward(h1, params, 'output', softmax)
-
-def generate_cm(probs, y):
+def get_confusion_matrix(probs, y):
     confusion_matrix = np.zeros((y.shape[1], y.shape[1]))
 
     y = y.astype(int)
@@ -171,8 +156,12 @@ def generate_cm(probs, y):
     return confusion_matrix
 
 # confusion matrix for training data
-confusion_matrix = generate_cm(train_probs, train_y)
-import string
+train_data = scipy.io.loadmat('../data/nist36_train.mat')
+train_x, train_y = train_data['train_data'], train_data['train_labels']
+train_probs = forward(forward(train_x, params, 'layer1'), params, 'output', softmax)
+
+confusion_matrix = get_confusion_matrix(train_probs, train_y)
+
 plt.imshow(confusion_matrix, interpolation='nearest')
 plt.grid(True)
 plt.xticks(np.arange(36), string.ascii_uppercase[:26] + ''.join([str(_) for _ in range(10)]))
@@ -180,7 +169,12 @@ plt.yticks(np.arange(36), string.ascii_uppercase[:26] + ''.join([str(_) for _ in
 plt.show()
 
 # confusion matrix for validation data
-confusion_matrix = generate_cm(valid_probs, valid_y)
+valid_data = scipy.io.loadmat('../data/nist36_valid.mat')
+valid_x, valid_y = valid_data['valid_data'], valid_data['valid_labels']
+valid_probs = forward(forward(valid_x, params, 'layer1'), params, 'output', softmax)
+
+confusion_matrix = get_confusion_matrix(valid_probs, valid_y)
+
 plt.imshow(confusion_matrix, interpolation='nearest')
 plt.grid(True)
 plt.xticks(np.arange(36), string.ascii_uppercase[:26] + ''.join([str(_) for _ in range(10)]))
@@ -188,7 +182,12 @@ plt.yticks(np.arange(36), string.ascii_uppercase[:26] + ''.join([str(_) for _ in
 plt.show()
 
 # confusion matrix for test data
-confusion_matrix = generate_cm(test_probs, test_y)
+test_data = scipy.io.loadmat('../data/nist36_test.mat')
+test_x, test_y = test_data['test_data'], test_data['test_labels']
+test_probs = forward(forward(test_x, params, 'layer1'), params, 'output', softmax)
+
+confusion_matrix = get_confusion_matrix(test_probs, test_y)
+
 plt.imshow(confusion_matrix, interpolation='nearest')
 plt.grid(True)
 plt.xticks(np.arange(36), string.ascii_uppercase[:26] + ''.join([str(_) for _ in range(10)]))

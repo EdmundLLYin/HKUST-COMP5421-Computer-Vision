@@ -2,6 +2,8 @@ import numpy as np
 import scipy.io
 from nn import *
 from collections import Counter
+import matplotlib.pyplot as plt
+import pickle
 
 train_data = scipy.io.loadmat('../data/nist36_train.mat')
 valid_data = scipy.io.loadmat('../data/nist36_valid.mat')
@@ -44,23 +46,19 @@ for itr in range(max_iters):
         #   params is a Counter(), which returns a 0 if an element is missing
         #   so you should be able to write your loop without any special conditions
 
-        # forward
         h1 = forward(xb, params, 'layer1', relu)
         h2 = forward(h1, params, 'hidden', relu)
         h3 = forward(h2, params, 'hidden2', relu)
         out = forward(h3, params, 'output', sigmoid)
 
-        # loss
         total_loss += np.sum((xb - out)**2)
 
-        # backward
         delta1 = -2*(xb-out)
         delta2 = backwards(delta1, params, 'output', sigmoid_deriv)
         delta3 = backwards(delta2, params, 'hidden2', relu_deriv)
         delta4 = backwards(delta3, params, 'hidden', relu_deriv)
         backwards(delta4, params, 'layer1', relu_deriv)
 
-        # update weights
         for k in params.keys():
             if '_' in k:
                 continue
@@ -74,24 +72,16 @@ for itr in range(max_iters):
     if itr % lr_rate == lr_rate-1:
         learning_rate *= 0.9
 
-# plot the training loss
-import matplotlib.pyplot as plt
 plt.figure()
 plt.plot(range(max_iters), train_loss, color='g')
 plt.show()
-# save parameters
-import pickle
 saved_params = {k:v for k,v in params.items() if '_' not in k}
 with open('q5_weights.pickle', 'wb') as handle:
     pickle.dump(saved_params, handle, protocol=pickle.HIGHEST_PROTOCOL)
 
-import pickle
-params = pickle.load(open('q5_weights.pickle', 'rb'))
-
 # visualize some results
 # Q5.3.1
-import matplotlib.pyplot as plt
-
+params = pickle.load(open('q5_weights.pickle', 'rb'))
 total_save = 10
 j = 0
 for xb, _ in batches:
@@ -115,7 +105,6 @@ for xb, _ in batches:
         break
 from skimage.metrics import peak_signal_noise_ratio as psnr
 #from skimage.measure import compare_psnr as psnr
-
 # evaluate PSNR
 # Q5.3.2
 h1 = forward(valid_x, params, 'layer1', relu)

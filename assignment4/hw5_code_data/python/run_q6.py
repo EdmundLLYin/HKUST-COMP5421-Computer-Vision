@@ -16,7 +16,6 @@ dim = 32
 # do PCA
 data_mean = np.sum(train_x, axis=0)/train_x.shape[0]
 train_x -= data_mean
-
 u, s, vh = np.linalg.svd(train_x)
 P = vh[:dim, :]
 
@@ -33,13 +32,6 @@ for i in range(recon.shape[0]):
     train_psnr += psnr(train_x[i], recon[i])
 train_psnr /= recon.shape[0]
 print(train_psnr)
-
-for i in range(5):
-    plt.subplot(2,1,1)
-    plt.imshow(train_x[i].reshape(32,32).T)
-    plt.subplot(2,1,2)
-    plt.imshow(recon[i].reshape(32,32).T)
-    plt.show()
 
 # build valid dataset
 valid_mean = np.sum(valid_x, axis=0)/valid_x.shape[0]
