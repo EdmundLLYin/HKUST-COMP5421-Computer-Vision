@@ -53,3 +53,4 @@ assignment4/hw5_code_data/python/data/MNIST/raw/train-labels-idx1-ubyte
 *.png
 *.pth
 *.jpg
+*.npy
