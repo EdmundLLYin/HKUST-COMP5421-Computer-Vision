@@ -8,47 +8,53 @@ import cv2
 import LucasKanadeBasis
 import LucasKanade
 
-# write your script here, we recommend the above libraries for making your animation
 if __name__ == '__main__':
-    result_dir = '../result/'
-    if not os.path.exists(result_dir):
-        os.makedirs(result_dir)
-    cars_data = np.load('../data/sylvseq.npy')
-    frame = cars_data[:, :, 0]
-    rect_list = []
-    rect = np.array([101, 61, 155, 107])
-    rect2 = np.array([101, 61, 155, 107])
-    rect_list.append(rect)
+    target_path = '../result/'
 
+    if not os.path.exists(target_path):
+        os.makedirs(target_path)
+
+    video = np.load('../data/sylvseq.npy')
     bases = np.load('../data/sylvbases.npy')
-    for i in range(1, cars_data.shape[2]):
-        next_frame = cars_data[:, :, i]
-        # track with two trackers
+    #print(video.shape)
+    frame = video[:, :, 0]
+
+    rects = []
+    rect_origin = np.array([101, 61, 155, 107])
+    rect = np.array([101, 61, 155, 107])
+    rects.append(rect)
+
+    for i in range(1, video.shape[2]):
+        next_frame = video[:, :, i]
+
+        p_origin = LucasKanade.LucasKanade(frame, next_frame, rect_origin)
         p = LucasKanadeBasis.LucasKanadeBasis(frame, next_frame, rect, bases)
-        p2 = LucasKanade.LucasKanade(frame, next_frame, rect2)
-
+        rect_origin = [rect_origin[0]+p_origin[0], rect_origin[1]+p_origin[1], rect_origin[2]+p_origin[0], rect_origin[3]+p_origin[1]]
         rect = [rect[0]+p[0], rect[1]+p[1], rect[2]+p[0], rect[3]+p[1]]
-        rect_list.append(rect)
-        rect2 = [rect2[0]+p2[0], rect2[1]+p2[1], rect2[2]+p2[0], rect2[3]+p2[1]]
+        # print('p',p)
+        # print('p_o', p_origin)
 
-        # show image
-        tmp_img = np.zeros((next_frame.shape[0], next_frame.shape[1], 3))
-        tmp_img[:, :, 0] = next_frame
-        tmp_img[:, :, 1] = next_frame
-        tmp_img[:, :, 2] = next_frame
-        cv2.rectangle(tmp_img, (int(round(rect2[0])), int(round(rect2[1]))),
-                      (int(round(rect2[2])), int(round(rect2[3]))),
-                      color=(0, 0, 255), thickness=3)
-        cv2.rectangle(tmp_img, (int(round(rect[0])), int(round(rect[1]))),
-                      (int(round(rect[2])), int(round(rect[3]))),
-                      color=(0, 255, 255), thickness=2)
-        cv2.imshow('image', tmp_img)
+        # print('rect_o', rect_origin)
+        # print('rect', rect)
+
+        rects.append(rect)
+
+        img = np.zeros((next_frame.shape[0], next_frame.shape[1], 3))
+        img[:, :, 0] = next_frame
+        img[:, :, 1] = next_frame
+        img[:, :, 2] = next_frame
+        cv2.rectangle(img, (int(round(rect_origin[0])), int(round(rect_origin[1]))), (int(round(rect_origin[2])), int(round(rect_origin[3]))), color=(0,255,0), thickness=2)
+        cv2.rectangle(img, (int(round(rect[0])), int(round(rect[1]))), (int(round(rect[2])), int(round(rect[3]))), color=(0,255,255), thickness=1)
+        cv2.imshow('image', img)
         cv2.waitKey(1)
 
         if i in [1, 200, 300, 350, 400]:
-            cv2.imwrite(os.path.join(result_dir, 'q2-3_{}.jpg'.format(i)), tmp_img*255)
+            cv2.imwrite(os.path.join(target_path, 'q2_3_{}.jpg'.format(i)), img*255)
 
         frame = next_frame
 
-    rect_list = np.array(rect_list)
-    np.save('sylvseqrects.npy', rect_list)
+        # break
+
+    rects = np.array(rects)
+    #print(rect_list)
+    np.save(os.path.join('sylvseqrects.npy'), rects)

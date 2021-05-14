@@ -8,49 +8,51 @@ def LucasKanadeAffine(It, It1):
 	# Output:
 	#	M: the Affine warp matrix [2x3 numpy array]
     # put your implementation here
-	M = np.array([[1.0, 0.0, 0.0], [0.0, 1.0, 0.0]])
-	p = M.flatten()
+	p = np.array([1.0, 0.0, 0.0, 0.0, 1.0, 0.0])
 
 	th = 0.001
 
 	x_min, y_min, x_max, y_max = 0, 0, It.shape[1]-1, It.shape[0]-1
-	delta_p = np.array([It1.shape[1]]*6)
+	delta_p = np.array([3211])
 
-	interp_spline_It1 = RectBivariateSpline(np.arange(It1.shape[0]), np.arange(It1.shape[1]), It1)
+	spline_It1 = RectBivariateSpline(np.arange(It1.shape[0]), np.arange(It1.shape[1]), It1)
 
 	while np.sum(delta_p ** 2) >= th:
-		x = np.arange(x_min, x_max+0.5)
-		y = np.arange(y_min, y_max+0.5)
-		X, Y = np.meshgrid(x, y)
-		X_ = p[0]*X + p[1]*Y + p[2]
-		Y_ = p[3]*X + p[4]*Y + p[5]
-		# find valid positions
-		valid = (X_ > 0) & (X_ < It.shape[1]) & (Y_ > 0) & (Y_ < It.shape[0])
-		X_ = X_[valid]
-		Y_ = Y_[valid]
-		X = X[valid].flatten()
-		Y = Y[valid].flatten()
-		interped_I = interp_spline_It1.ev(Y_, X_)
+		current_x_vector = np.arange(x_min, x_max+1e-9)
+		current_y_vector = np.arange(y_min, y_max+1e-9)
+		current_x_stack, current_y_stack = np.meshgrid(current_x_vector, current_y_vector)
 
-		# calculate gradients
-		interped_gx = interp_spline_It1.ev(Y_, X_, dx=0, dy=1).flatten()
-		interped_gy = interp_spline_It1.ev(Y_, X_, dx=1, dy=0).flatten()
+		transformed_x_stack = p[0]*current_x_stack + p[1]*current_y_stack + p[2]
+		transformed_y_stack = p[3]*current_x_stack + p[4]*current_y_stack + p[5]
 
-		# get matrix A
-		N = interped_gx.shape[0]
-		A_ = np.zeros((N, 6))
-		FX, FY = X.flatten(), Y.flatten()
-		A_[:, 0] = np.multiply(interped_gx, FX)
-		A_[:, 1] = np.multiply(interped_gx, FY)
-		A_[:, 2] = interped_gx
-		A_[:, 3] = np.multiply(interped_gy, FX)
-		A_[:, 4] = np.multiply(interped_gy, FY)
-		A_[:, 5] = interped_gy
+		valid_position = (transformed_x_stack > 0) & \
+			 	(transformed_x_stack < It.shape[1]) & \
+				(transformed_y_stack > 0) &  \
+				(transformed_y_stack < It.shape[0])
 
-		# get matrix b
-		b = It[valid].flatten() - interped_I.flatten()
+		transformed_x_stack = transformed_x_stack[valid_position]
+		transformed_y_stack = transformed_y_stack[valid_position]
 
-		delta_p = np.dot(np.linalg.inv(np.dot(np.transpose(A_), A_)), np.dot(np.transpose(A_), b))
+		current_x_stack = current_x_stack[valid_position].flatten()
+		current_y_stack = current_y_stack[valid_position].flatten()
+
+		transformed_image_intensity = spline_It1.ev(transformed_y_stack, transformed_x_stack)
+		transformed_image_gradient_x = spline_It1.ev(transformed_y_stack, transformed_x_stack, dx=0, dy=1).flatten()
+		transformed_image_gradient_y = spline_It1.ev(transformed_y_stack, transformed_x_stack, dx=1, dy=0).flatten()
+
+		A = np.zeros((transformed_image_gradient_x.shape[0], 6))
+		FX, FY = current_x_stack.flatten(), current_y_stack.flatten()
+		A[:, 0] = np.multiply(transformed_image_gradient_x, FX)
+		A[:, 1] = np.multiply(transformed_image_gradient_x, FY)
+		A[:, 2] = transformed_image_gradient_x
+		A[:, 3] = np.multiply(transformed_image_gradient_y, FX)
+		A[:, 4] = np.multiply(transformed_image_gradient_y, FY)
+		A[:, 5] = transformed_image_gradient_y
+
+		b = It[valid_position].flatten() - transformed_image_intensity.flatten()
+		inv_H = np.linalg.inv(np.dot(np.transpose(A), A))
+		b_ = np.dot(np.transpose(A),b)
+		delta_p = np.dot(inv_H, b_)
 
 		p += delta_p.flatten()
 

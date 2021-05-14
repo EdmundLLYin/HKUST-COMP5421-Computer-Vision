@@ -3,7 +3,9 @@ import matplotlib.pyplot as plt
 import matplotlib.colors as colors
 from matplotlib import animation
 import matplotlib.patches as patches
-
+import scipy.ndimage
+import cv2
+import os
 
 img = np.load('lena.npy')
 
@@ -59,6 +61,11 @@ Y = np.zeros((N, 1))
 
 sigma = 5
 
+def im_show_and_save(image, path):
+    cv2.imshow('filter response', image)
+    cv2.waitKey(0)  # press any key to exit
+    cv2.destroyAllWindows()
+    cv2.imwrite(path, image*255)
 
 def init():
     return [cropax, patch, all_patchax]
@@ -84,8 +91,41 @@ def animate(i):
                           Y.reshape(dsize), cmap=plt.get_cmap('coolwarm'))
 
         # Place your solution code for question 4.3 here
+        target_path = '../../result/'
+        if not os.path.exists(target_path):
+            os.makedirs(target_path)
+
+        lam0 = 0
+        S_ = np.dot(X, np.transpose(X) + lam0 * np.eye(X.shape[0]))
+        S_ = np.linalg.inv(S_)
+        S_ = np.dot(S_, X)
+        g0 = np.dot(S_, Y)
+        g0 = np.reshape(g0, (29, 45))
+        plt.matshow(g0)
         plt.show()
+
+        out = scipy.ndimage.correlate(img, g0)
+        im_show_and_save(out, os.path.join(target_path, 'correlate0.jpg'))
+
+        lam1 = 1
+        g1 = np.dot(np.dot(np.linalg.inv(np.dot(X, np.transpose(X)) + lam1 * np.eye(X.shape[0])), X), Y)
+        g1 = np.reshape(g1, (29, 45))
+        plt.matshow(g1)
+        plt.show()
+
+        out = scipy.ndimage.correlate(img, g1)
+        im_show_and_save(out, os.path.join(target_path, 'correlate1.jpg'))
+        out = scipy.ndimage.convolve(img, g0)
+        im_show_and_save(out, os.path.join(target_path, 'convolve0.jpg'))
+        out = scipy.ndimage.convolve(img, g1)
+        im_show_and_save(out, os.path.join(target_path, 'convolve1.jpg'))
+        out = scipy.ndimage.convolve(img, g0[::-1, ::-1])
+        im_show_and_save(out, os.path.join(target_path, 'convolve2.jpg'))
+        out = scipy.ndimage.convolve(img, g1[::-1, ::-1])
+        im_show_and_save(out, os.path.join(target_path, 'convolve3.jpg'))
+
         return []
+        
 
 
 # Start the animation

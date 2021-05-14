@@ -17,42 +17,49 @@ def InverseCompositionAffine(It, It1):
     th = 0.001
 
     x_min, y_min, x_max, y_max = 0, 0, It.shape[1] - 1, It.shape[0] - 1
-    delta_p = np.array([It1.shape[1]] * 6)
+    delta_p = np.array([3211])
 
-    interp_spline_It1 = RectBivariateSpline(np.arange(It.shape[0]), np.arange(It.shape[1]), It1)
-    interp_spline_It = RectBivariateSpline(np.arange(It.shape[0]), np.arange(It.shape[1]), It)
+    spline_It1 = RectBivariateSpline(np.arange(It.shape[0]), np.arange(It.shape[1]), It1)
+    spline_It = RectBivariateSpline(np.arange(It.shape[0]), np.arange(It.shape[1]), It)
 
-    x = np.arange(x_min, x_max + 0.5)
-    y = np.arange(y_min, y_max + 0.5)
-    X, Y = np.meshgrid(x, y)
+    x_vector = np.arange(x_min, x_max + 0.5)
+    y_vector = np.arange(y_min, y_max + 0.5)
+    x_stack, y_stack = np.meshgrid(x_vector, y_vector)
 
-    interped_gx = interp_spline_It.ev(Y, X, dx=0, dy=1).flatten()
-    interped_gy = interp_spline_It.ev(Y, X, dx=1, dy=0).flatten()
+    image_gradient_x = spline_It.ev(y_stack, x_stack, dx=0, dy=1).flatten()
+    image_gradient_y = spline_It.ev(y_stack, x_stack, dx=1, dy=0).flatten()
 
-    N = interped_gx.shape[0]
+    N = image_gradient_x.shape[0]
     A_ = np.zeros((N, 6))
-    FX, FY = X.flatten(), Y.flatten()
-    A_[:, 0] = np.multiply(interped_gx, FX)
-    A_[:, 1] = np.multiply(interped_gx, FY)
-    A_[:, 2] = interped_gx
-    A_[:, 3] = np.multiply(interped_gy, FX)
-    A_[:, 4] = np.multiply(interped_gy, FY)
-    A_[:, 5] = interped_gy
+    FX, FY = x_stack.flatten(), y_stack.flatten()
+    A_[:, 0] = np.multiply(image_gradient_x, FX)
+    A_[:, 1] = np.multiply(image_gradient_x, FY)
+    A_[:, 2] = image_gradient_x
+    A_[:, 3] = np.multiply(image_gradient_y, FX)
+    A_[:, 4] = np.multiply(image_gradient_y, FY)
+    A_[:, 5] = image_gradient_y
 
     while np.sum(delta_p ** 2) >= th:
-        X_ = p[0] * X + p[1] * Y + p[2]
-        Y_ = p[3] * X + p[4] * Y + p[5]
-        valid = (X_ > 0) & (X_ < It1.shape[1]) & (Y_ > 0) & (Y_ < It1.shape[0])
-        X_ = X_[valid]
-        Y_ = Y_[valid]
+        
+        current_x_stack = p[0] * x_stack + p[1] * y_stack + p[2]
+        current_y_stack = p[3] * x_stack + p[4] * y_stack + p[5]
 
-        interped_I = interp_spline_It1.ev(Y_, X_)
+        valid_position =    (current_x_stack > 0) & \
+                            (current_x_stack < It1.shape[1]) & \
+                            (current_y_stack > 0) & \
+                            (current_y_stack < It1.shape[0])
+        
+        current_x_stack = current_x_stack[valid_position]
+        current_y_stack = current_y_stack[valid_position]
 
-        A_valid = A_[valid.flatten()]
-        b = interped_I.flatten() - It[valid].flatten()
+        A_valid = A_[valid_position.flatten()]
+        
+        image_intensity = spline_It1.ev(current_y_stack, current_x_stack)
+        
+        b = image_intensity.flatten() - It[valid_position].flatten()
+        inv_H = np.linalg.inv(np.dot(np.transpose(A_valid), A_valid))
         b_ = np.dot(np.transpose(A_valid), b)
-
-        delta_p = np.dot(np.linalg.inv(np.dot(np.transpose(A_valid), A_valid)), b_)
+        delta_p = np.dot(inv_H, b_)
 
         M = np.vstack((np.reshape(p, (2, 3)), np.array([[0, 0, 1]])))
         delta_M = np.vstack((np.reshape(delta_p, (2, 3)), np.array([[0, 0, 1]])))
